@@ -9,11 +9,9 @@ import com.dg.login.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -29,21 +27,22 @@ public class AuthController {
 
     @PostMapping( "/login")
     public ResponseEntity login(@RequestBody LoginRequestDTO body) {
-        User user = this.repository.findByUsername(body.username()).orElseThrow(() -> new RuntimeException("Usuario nao encontrado"));
+        User user = this.repository.findByEmail(body.email()).orElseThrow(() -> new RuntimeException("Usuario nao encontrado"));
         if(passwordEncoder.matches(body.password(), user.getPassword())) {
             String token = this.tokenService.generateToken(user);
-            return ResponseEntity.ok(new ResponseDTO(user.getUsername(), token));
+            return ResponseEntity.ok(new ResponseDTO(user.getEmail(), token));
         }
         return ResponseEntity.badRequest().build();
     }
 
     @PostMapping( "/register")
     public ResponseEntity register(@RequestBody RegisterRequestDTO body) {
-        Optional<User> user = this.repository.findByUsername(body.username());
+        Optional<User> user = this.repository.findByEmail(body.username());
         if(user.isEmpty()) {
             User newUser = new User();
             newUser.setPassword(passwordEncoder.encode(body.password()));
             newUser.setUsername(body.username());
+            newUser.setEmail(body.email());
             this.repository.save(newUser);
 
             String token = this.tokenService.generateToken(newUser);
@@ -53,4 +52,13 @@ public class AuthController {
         return ResponseEntity.badRequest().build();
     }
 
+    @GetMapping("/check-email")
+    public ResponseEntity<?> checkEmailExists(@RequestParam String email) {
+        boolean exists = repository.existsByEmail(email);
+
+        if(exists) {
+            return ResponseEntity.badRequest().body(Map.of("message","E-mail já cadastrado"));
+        }
+        return ResponseEntity.ok(Map.of("message", "E-mail disponível"));
+    }
 }

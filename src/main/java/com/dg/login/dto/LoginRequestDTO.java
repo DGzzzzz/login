@@ -1,4 +1,4 @@
 package com.dg.login.dto;
 
-public record LoginRequestDTO(String username, String password) {
+public record LoginRequestDTO(String email, String password) {
 }
